@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CannaZon - Custom Vape FaaS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>CannaZon</h1>
+    <p class="tagline">The Canna-grail of custom vape distribution</p>
+  </header>
+
+  <main>
+    <section class="configurator">
+      <h2>Craft Your Signature Vape</h2>
+      <div class="slider-group">
+        <label for="thc">THC Potency: <span id="thc-value">50</span>%</label>
+        <input type="range" id="thc" min="0" max="100" value="50" />
+      </div>
+      <div class="slider-group">
+        <label for="cbd">CBD Balance: <span id="cbd-value">50</span>%</label>
+        <input type="range" id="cbd" min="0" max="100" value="50" />
+      </div>
+      <div class="slider-group">
+        <label for="terps">Terpene Boost: <span id="terps-value">50</span>%</label>
+        <input type="range" id="terps" min="0" max="100" value="50" />
+      </div>
+      <div class="slider-group">
+        <label for="flavor">Flavor Intensity: <span id="flavor-value">50</span>%</label>
+        <input type="range" id="flavor" min="0" max="100" value="50" />
+      </div>
+      <button id="fill-btn">Summon WeedBotz</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 CannaZon FaaS. Powered by Vape-Jet WeedBotz.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
