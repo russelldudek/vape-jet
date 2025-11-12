@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Vape‑Jet Map — Spotlight + Chaptered v8</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<style>
+  :root{
+    --vj-purple:#6E2BF2;
+    --vj-teal:#00D1B2;
+    --vj-ink:#0b1020;
+    --vj-panel:#0e1321;
+    --vj-border:#1f2937;
+    --vj-text:#e5e7eb;
+    --vj-muted:#9aa4b2;
+
+    /* machine family defaults */
+    --col-vj:#60a5fa;
+    --col-jf:#8fd19e;
+    --col-fd:#f6cf65;
+    --col-dd:#f59e0b;
+    --col-se:#f472b6;
+    --col-dj:#a78bfa;
+
+    /* clusters + dots */
+    --cluster-outline-color:#0b1020;
+    --cluster-outline-width:3px;
+    --cluster-glow-color:#6E2BF2;
+    --cluster-glow-width:2px;
+    --cluster-count-color:#e5e7eb;
+    --dot-fill:transparent;
+
+    /* header + legend */
+    --title-size:18px;
+    --title-align:left;
+    --legend-bg:#0b1220cc;
+    --legend-border:#1f2937;
+
+    /* buttons + toolbar */
+    --btn-bg:#1f2937;
+    --btn-text:#e5e7eb;
+    --btn-border:#1f2937;
+    --btn-primary:#6E2BF2;
+    --dot-size:46px; /* base size slider; collapsed dot uses 50% of this */
+  }
+  html,body{height:100%;margin:0;background:var(--vj-ink);color:var(--vj-text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial;}
+  .header{ height:60px; display:flex; align-items:center; gap:10px;
+    background: linear-gradient(90deg, var(--vj-purple), var(--vj-teal)); padding:0 12px; font-weight:700; position:relative; }
+  .header .title{ font-size:var(--title-size); letter-spacing:.2px; text-shadow:0 1px 0 rgba(0,0,0,.25); flex:1; text-align:var(--title-align); }
+  .wrap{ display:grid; grid-template-columns: 480px 1fr; height: calc(100% - 60px); }
+  .wrap.collapsed{ grid-template-columns: 0 1fr; }
+  .panel{ background: var(--vj-panel); border-right:1px solid var(--vj-border); padding:12px; overflow:auto; }
+  .panel h4{ margin:14px 0 6px; font-size:12px; color:var(--vj-muted); text-transform:uppercase; letter-spacing:.08em; }
+  .panel .card{ border:1px solid var(--vj-border); border-radius:14px; padding:10px; background:rgba(255,255,255,0.02); box-shadow: 0 6px 18px rgba(0,0,0,.22) inset, 0 0 0 1px rgba(255,255,255,.02) inset; margin-bottom:10px; }
+  .panel .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .panel .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .panel .grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; }
+  .row{ margin-bottom:8px; }
+  label.small{ font-size:11px; color:var(--vj-muted); display:block; margin-bottom:2px; }
+  input[type="text"], select, input[type="number"], textarea{ width:100%; background:#0b1220; border:1px solid var(--vj-border); color:var(--vj-text); padding:8px; border-radius:10px; outline:none; }
+  input[type="color"]{ width:100%; height:36px; padding:0; border:none; border-radius:8px; background:#0b1220; }
+  textarea{ min-height: 110px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  details summary{ cursor:pointer; color:#cbd5e1; }
+  details p, details ul, details ol{ color:#d1d5db; line-height:1.4; font-size:13px; }
+
+  .btn{ background: var(--btn-bg); color: var(--btn-text); border:1px solid var(--btn-border); border-radius:10px; padding:8px 10px; cursor:pointer; }
+  .btn.primary{ background: var(--btn-primary); border-color: transparent; color:#fff; }
+  .btn.ghost{ background:transparent; border:1px solid var(--vj-border); color:var(--vj-text); }
+  #map{ width:100%; height:100%; background:#0c0f17; }
+  .toolbar{ display:flex; gap:8px; margin-left:auto; }
+  .toolbar.hidden{ display:none; }
+  .tip{ font-size:11px; color:var(--vj-muted); }
+
+  /* Dim mode */
+  .dim .vj-dot, .dim .vj-cluster{ opacity:0.35; filter: grayscale(0.2) brightness(0.85); }
+
+  /* Legend overlay */
+  .legend{
+    position:absolute; z-index:1000; right:10px; bottom:10px;
+    background: var(--legend-bg);
+    border:1px solid var(--legend-border);
+    border-radius:12px; padding:10px; min-width:200px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);
+  }
+  .legend.hidden{ display:none; }
+  .legend h5{ margin:0 0 6px; font-size:12px; color:#cbd5e1; text-transform:uppercase; letter-spacing:.08em; }
+  .legend .row{ display:flex; align-items:center; gap:8px; margin:6px 0; }
+  .sw{ width:16px; height:16px; border-radius:50%; border:3px solid currentColor; }
+
+  /* Toolbar dot now sits inside header and is vertically centered */
+  #toolbarDot{
+    position:absolute; z-index:1100;
+    right: 10px; top: 50%; transform: translateY(-50%);
+    border-radius:50%; background: var(--btn-primary);
+    border:2px solid rgba(255,255,255,0.15);
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    display:none; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="header" id="headerBar">
+    <div class="title" id="titleText">Vape‑Jet Loc-O-Matic</div>
+    <div class="toolbar" id="toolbar">
+      <button id="togglePanel" class="btn ghost">Hide panel</button>
+      <button id="buildRoute" class="btn">Build route</button>
+      <button id="startFly" class="btn primary" disabled>Start</button>
+      <button id="stopFly" class="btn">Stop</button>
+      <button id="dockBtn" class="btn">Dock</button>
+    </div>
+    <div id="toolbarDot" title="Show controls"></div>
+  </div>
+
+  <div class="wrap">
+    <aside class="panel" id="panel">
+      <!-- ENTIRE PANEL UNCHANGED -->
+      <!-- (Panel content is identical to v7; only JS behavior below is updated) -->
+
+      <div class="card">
+        <h4>Branding</h4>
+        <div class="row"><label class="small">Title text</label><input id="ctlTitleText" type="text" value="Vape‑Jet Loc-O-Matic"></div>
+        <div class="grid-3">
+          <div><label class="small">Title size px</label><input id="ctlTitleSize" type="number" min="12" max="48" value="18"></div>
+          <div><label class="small">Align</label>
+            <select id="ctlTitleAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select>
+          </div>
+          <div><label class="small">Legend toggle</label>
+            <select id="ctlLegend"><option value="on">On</option><option value="off">Off</option></select>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Header gradient A</label><input id="gradA" type="color" value="#6E2BF2"></div>
+          <div><label class="small">Header gradient B</label><input id="gradB" type="color" value="#00D1B2"></div>
+          <div><label class="small">Legend position</label>
+            <select id="legendPos"><option value="br">Bottom right</option><option value="bl">Bottom left</option><option value="tr">Top right</option><option value="tl">Top left</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Toolbar & buttons</h4>
+        <div class="grid-3">
+          <div><label class="small">Button bg</label><input id="btnBg" type="color" value="#1f2937"></div>
+          <div><label class="small">Button border</label><input id="btnBd" type="color" value="#1f2937"></div>
+          <div><label class="small">Button text</label><input id="btnText" type="color" value="#e5e7eb"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Primary btn</label><input id="btnPrimary" type="color" value="#6E2BF2"></div>
+          <div><label class="small">Toolbar mode</label>
+            <select id="toolbarMode"><option value="full">Full</option><option value="dot">Dot</option></select>
+          </div>
+          <div><label class="small">Dot size px</label><input id="dotSize" type="number" min="32" max="80" value="46"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Dot side</label>
+            <select id="dotPos"><option value="right">Right</option><option value="left">Left</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Basemap</h4>
+        <div class="grid-3">
+          <div><label class="small">Map style</label>
+            <select id="basemapSelect">
+              <option value="osm">OSM Standard</option>
+              <option value="cartoLight">Carto Light</option>
+              <option value="cartoDark">Carto Dark</option>
+              <option value="esri">Esri Imagery</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Machine type colors</h4>
+        <div class="grid-3">
+          <div><label class="small">Vape‑Jet</label><input id="colVJ" type="color" value="#60a5fa"></div>
+          <div><label class="small">Jet‑Fueler</label><input id="colJF" type="color" value="#8fd19e"></div>
+          <div><label class="small">Flight‑Deck</label><input id="colFD" type="color" value="#f6cf65"></div>
+          <div><label class="small">Dab‑Dispenser</label><input id="colDD" type="color" value="#f59e0b"></div>
+          <div><label class="small">Squish‑E</label><input id="colSE" type="color" value="#f472b6"></div>
+          <div><label class="small">Dab‑Jet</label><input id="colDJ" type="color" value="#a78bfa"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Dot fill color</label><input id="dotFill" type="color" value="#000000"></div>
+          <div><label class="small">Dot fill hex</label><input id="dotFillHex" type="text" value="transparent"></div>
+          <div><label class="small">Clear fill</label>
+            <select id="dotClear"><option value="on">On</option><option value="off">Off</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Cluster pie styling</h4>
+        <div class="grid-3">
+          <div><label class="small">Outline color</label><input id="pieOutline" type="color" value="#0b1020"></div>
+          <div><label class="small">Outline width px</label><input id="pieOutlineW" type="number" min="0" max="10" value="3"></div>
+          <div><label class="small">Glow color</label><input id="pieGlow" type="color" value="#6E2BF2"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Glow width px</label><input id="pieGlowW" type="number" min="0" max="10" value="2"></div>
+          <div><label class="small">Legend bg</label><input id="legendBg" type="color" value="#0b1220"></div>
+          <div><label class="small">Legend border</label><input id="legendBd" type="color" value="#1f2937"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Pie count text</label><input id="pieCountText" type="color" value="#e5e7eb"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Mode</h4>
+        <div class="grid-3">
+          <div><label class="small">Tour mode</label>
+            <select id="tourMode">
+              <option value="spotlight">Spotlight</option>
+              <option value="chaptered">Chaptered</option>
+            </select>
+          </div>
+          <div><label class="small">Dim others</label>
+            <select id="dimMode"><option value="on">On</option><option value="off">Off</option></select>
+          </div>
+          <div><label class="small">Loop ping‑pong</label>
+            <select id="loopMode"><option value="on">On</option><option value="off">Off</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="spotlightCard">
+        <h4>Spotlight settings</h4>
+        <div class="grid-3">
+          <div><label class="small">Base zoom</label><input id="spotZoom" type="number" min="3" max="12" value="5"></div>
+          <div><label class="small">Route zoom</label><input id="spotRouteZoom" type="number" min="3" max="12" value="5"></div>
+          <div><label class="small">Targets</label><input id="spotLimit" type="number" min="0" max="10000" value="12"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Move sec</label><input id="spotMoveSec" type="number" min="1" max="10" value="3"></div>
+          <div><label class="small">Dwell ms</label><input id="spotDwell" type="number" min="0" max="3000" value="1000"></div>
+          <div><label class="small">Ease</label><input id="spotEase" type="number" min="0.1" max="0.9" step="0.05" value="0.25"></div>
+        </div>
+      </div>
+
+      <div class="card" id="chapterCard" style="display:none">
+        <h4>Chaptered settings</h4>
+        <div class="grid-3">
+          <div><label class="small">Overview zoom</label><input id="chOverviewZoom" type="number" min="3" max="8" value="4"></div>
+          <div><label class="small">Region zoom</label><input id="chRegionZoom" type="number" min="4" max="10" value="6"></div>
+          <div><label class="small">Metro zoom</label><input id="chMetroZoom" type="number" min="6" max="12" value="9"></div>
+        </div>
+        <div class="grid-3">
+          <div><label class="small">Top metros</label><input id="chTopMetros" type="number" min="1" max="50" value="10"></div>
+          <div><label class="small">Move sec</label><input id="chMoveSec" type="number" min="1" max="10" value="3"></div>
+          <div><label class="small">Dwell ms</label><input id="chDwell" type="number" min="0" max="3000" value="900"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Data</h4>
+        <div class="row"><input type="file" id="fileInput" accept=".csv,.txt,.json,.geojson"/></div>
+        <div class="grid-2">
+          <button id="loadDemo" class="btn">Load demo</button>
+          <button id="loadPasted" class="btn">Load pasted CSV</button>
+        </div>
+        <div class="row"><textarea id="pasteArea" placeholder="Paste CSV rows here..."></textarea></div>
+      </div>
+
+      <div class="card" id="mapperCard" style="display:none">
+        <h4>Column mapper</h4>
+        <div class="grid-3">
+          <div><label class="small">Latitude</label><select id="mapLat"></select></div>
+          <div><label class="small">Longitude</label><select id="mapLon"></select></div>
+          <div><label class="small">Machine Type</label><select id="mapType"></select></div>
+          <div><label class="small">City</label><select id="mapCity"></select></div>
+          <div><label class="small">State</label><select id="mapState"></select></div>
+          <div><label class="small">ZIP</label><select id="mapZip"></select></div>
+        </div>
+        <div class="row tip">If type lives under “New Machine Purchase,” select that as Machine Type.</div>
+        <div><button id="applyMap" class="btn">Apply mapping</button></div>
+      </div>
+
+      <div class="card" id="settingsIO">
+        <h4>Settings I/O</h4>
+        <div class="grid-2">
+          <button id="exportSettings" class="btn">Export settings (CSV)</button>
+          <button id="importSettingsBtn" class="btn">Import settings (CSV)</button>
+        </div>
+        <input type="file" id="importSettings" accept=".csv" style="display:none"/>
+        <div class="tip">Saves and restores all control values, including colors, map, and tour pacing.</div>
+      </div>
+
+      <div class="card" id="instructionsCard">
+        <h4>Instructions</h4>
+        <details>
+          <summary>Quick start</summary>
+          <ol>
+            <li>Load data: choose a CSV or GeoJSON with latitude and longitude, or paste CSV then click <b>Load pasted CSV</b>.</li>
+            <li>Map columns: the Column mapper appears. Set <b>Latitude</b>, <b>Longitude</b>, <b>Machine Type</b>
+              (pick the field that holds the family, for some exports this is <i>New Machine Purchase</i>), plus <b>City</b>, <b>State</b>, <b>ZIP</b>. Click <b>Apply mapping</b>.</li>
+            <li>Theme it: pick machine type colors, dot fill, cluster outline and glow. Set title text, size, alignment, and header gradient. Toggle the legend and choose its corner.</li>
+            <li>Choose a map: select a basemap in <b>Basemap</b> (OSM Standard, Carto Light, Carto Dark, Esri Imagery).</li>
+            <li>Build a route: pick <b>Tour mode</b> (Spotlight or Chaptered), tune zoom, targets, speed, and dwell. Click <b>Build route</b>, then <b>Start</b>.</li>
+            <li>Present: collapse the panel with <b>Hide panel</b>. Dock the toolbar into a dot with <b>Dock</b>. The floating dot restores the toolbar.</li>
+            <li>Save your look: use <b>Export settings</b> to save a CSV you can re‑import later.</li>
+          </ol>
+        </details>
+        <details>
+          <summary>Modes explained</summary>
+          <ul>
+            <li><b>Spotlight</b>: builds targets from cluster centers at your Route zoom, limited by <b>Targets</b>. Ordering uses nearest neighbor to reduce camera zig‑zag.</li>
+            <li><b>Chaptered</b>: overview of the whole network, then regional centroids, then the top metros by density. Control counts, zooms, and pacing.</li>
+            <li><b>Loop ping pong</b>: bounces the tour forward and back for continuous playback.</li>
+            <li><b>Dim others</b>: lowers non‑focus points for emphasis.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Tips</summary>
+          <ul>
+            <li>Unknown or irregular type labels are normalized. Use the color pickers to tune the family palette.</li>
+            <li>The legend can stay visible when the panel is hidden. Move it to a corner that avoids your screen graphics.</li>
+            <li>For kiosk setups use a dark basemap with brighter type colors and a transparent dot fill for a clean look.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Troubleshooting</summary>
+          <ul>
+            <li><b>No points</b>: check that Latitude and Longitude are mapped to numeric fields.</li>
+            <li><b>No types</b>: point Machine Type to the field that holds the family. For some exports this is New Machine Purchase.</li>
+            <li><b>Start disabled</b>: click <b>Build route</b> after loading data.</li>
+            <li><b>Buttons missing</b>: if the toolbar is docked, click the colored dot in the header.</li>
+          </ul>
+        </details>
+      </div>
+    </aside>
+    <main id="map">
+      <div id="legend" class="legend">
+        <h5>Legend</h5>
+        <div id="legendRows"></div>
+      </div>
+    </main>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/supercluster@8.0.1/dist/supercluster.min.js"></script>
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+  const map = L.map('map', { preferCanvas:true }).setView([39.5,-98.35], 4);
+
+  // Basemap registry
+  const BASEMAPS = {
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom:19, attribution:'&copy; OpenStreetMap'
+    }),
+    cartoLight: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom:19, attribution:'&copy; OpenStreetMap &copy; CARTO'
+    }),
+    cartoDark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom:19, attribution:'&copy; OpenStreetMap &copy; CARTO'
+    }),
+    esri: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom:19, attribution:'Tiles &copy; Esri'
+    })
+  };
+  let baseLayer = BASEMAPS.osm.addTo(map);
+  function setBaseMap(key){
+    if(baseLayer){ map.removeLayer(baseLayer); }
+    baseLayer = BASEMAPS[key] || BASEMAPS.osm;
+    baseLayer.addTo(map);
+  }
+
+  const byId = (id)=>document.getElementById(id);
+  const $ = (sel)=>document.querySelector(sel);
+
+  // Data
+  let ALL = []; let markers = []; let scIndex = null;
+  let route = []; let idx = 0; let timer = null; let playing=false; let dir = 1; // ping‑pong
+  let autoResumeTimer = null;
+
+  // Colors
+  const TYPE_COL = {
+    'Vape-Jet': getCss('--col-vj','#60a5fa'),
+    'Jet-Fueler': getCss('--col-jf','#8fd19e'),
+    'Flight-Deck': getCss('--col-fd','#f6cf65'),
+    'Dab-Dispenser': getCss('--col-dd','#f59e0b'),
+    'Squish-E': getCss('--col-se','#f472b6'),
+    'Dab-Jet': getCss('--col-dj','#a78bfa')
+  };
+
+  function setCss(name, value){ document.documentElement.style.setProperty(name, value); }
+  function getCss(name, fallback){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; }
+
+  // Type normalization
+  const TYPE_NAME = (t)=>{
+    if(!t) return t;
+    const s = String(t).trim().toUpperCase();
+    const norm = s
+      .replace(/VAPE[\s-]?JET\s*4(\.0)?/g,'VJ4')
+      .replace(/VAPE[\s-]?JET\s*3(\.0)?/g,'VJ3')
+      .replace(/JET[\s-]?FUELER\s*3(\.0)?/g,'JF3')
+      .replace(/FLIGHT[\s-]?DECK/g,'FD')
+      .replace(/DAB[\s-]?DISPENSER/g,'DD')
+      .replace(/DAB[\s-]?JET/g,'DJ')
+      .replace(/SQUISH[\s-]?E(\s*9000)?/g,'SE')
+      .replace(/\s+/g,'')
+    ;
+    const map = { VJ:'Vape-Jet', VJ3:'Vape-Jet', VJ4:'Vape-Jet', VJ4TL:'Vape-Jet', VJTL:'Vape-Jet',
+                  JF:'Jet-Fueler', JF3:'Jet-Fueler',
+                  FD:'Flight-Deck', DD:'Dab-Dispenser', DJ:'Dab-Jet', SE:'Squish-E' };
+    return map[norm] || map[s] || t;
+  };
+
+  // Cluster icon
+  function clusterIcon(cluster){
+    const kids = cluster.getAllChildMarkers();
+    const counts = {}; let total=0;
+    for(const m of kids){ const fam = TYPE_NAME(m.record.type); counts[fam]=(counts[fam]||0)+1; total++; }
+    const entries = Object.entries(counts).sort((a,b)=> b[1]-a[1]);
+    let acc = 0;
+    const slices = entries.map(([fam,cnt])=>{
+      const col = TYPE_COL[fam] || '#60a5fa';
+      const start = (acc/total)*360; acc += cnt; const end = (acc/total)*360;
+      return `${col} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`;
+    });
+    const r = Math.min(48, 18 + Math.round(6*Math.sqrt(total)));
+    const outline = getCss('--cluster-outline-color','#0b1020');
+    const outlineW = getCss('--cluster-outline-width','3px');
+    const glow = getCss('--cluster-glow-color','#6E2BF2');
+    const glowW = getCss('--cluster-glow-width','2px');
+    const countColor = getCss('--cluster-count-color','#e5e7eb');
+    const html = `<div style="width:${r}px;height:${r}px;border-radius:50%;background:conic-gradient(${slices.join(',')});border:${outlineW} solid ${outline};box-shadow:0 0 0 ${glowW} ${glow};display:flex;align-items:center;justify-content:center;color:${countColor};font-weight:800;font-size:12px;">${total}</div>`;
+    return L.divIcon({ html, className:'vj-cluster', iconSize:[r,r] });
+  }
+
+  // Cluster group
+  function densityToRadius(z, level, base){ const scale=[1.4,1.0,0.8,0.6,0.45][Math.max(0,Math.min(4,level-1))]; return Math.max(18, Math.round(base*scale*Math.pow(0.9, z-4))); }
+  let explodeAt = 10, baseRadius = 80, densityLevel = 2;
+  let clusters = L.markerClusterGroup({
+    showCoverageOnHover:false, chunkedLoading:true, spiderfyOnMaxZoom:true, animateAddingMarkers:true,
+    maxClusterRadius:(z)=>densityToRadius(z,densityLevel,baseRadius), disableClusteringAtZoom: explodeAt, iconCreateFunction: clusterIcon
+  });
+  map.addLayer(clusters);
+
+  // Point icon
+  function pointIcon(fam){
+    const stroke = TYPE_COL[TYPE_NAME(fam)] || '#60a5fa';
+    const fill = getCss('--dot-fill','transparent') || 'transparent';
+    return L.divIcon({ className:'vj-dot', html:`<div style="width:12px;height:12px;border:3px solid ${stroke};border-radius:50%;background:${fill};"></div>`, iconSize:[18,18], iconAnchor:[9,9] });
+  }
+
+  function clearData(){ clusters.clearLayers(); markers.length=0; }
+  function fitToData(){ if(!markers.length) return; map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2)); }
+
+  function ingest(records){
+    clearData(); ALL = records.slice();
+    for(const r of ALL){
+      const m = L.marker([r.lat, r.lng], { icon: pointIcon(r.type) });
+      m.record = r; m.bindPopup(`<b>${TYPE_NAME(r.type)||''}</b><br>${r.city||''}, ${r.state||''} ${r.zip||''}`);
+      markers.push(m); clusters.addLayer(m);
+    }
+    fitToData();
+    buildSCIndex();
+    byId('startFly').disabled = false;
+    rebuildLegend();
+  }
+
+  // Column mapper
+  let mapper = { lat:null, lon:null, type:null, city:null, state:null, zip:null };
+  let pending = null; // [text, kind]
+  function autoSuggest(fields){
+    function pick(cands){ const lc=fields.map(f=>f.toLowerCase()); for(const c of cands){ const i=lc.findIndex(h=>h.includes(c)); if(i>=0) return fields[i]; } return ''; }
+    mapper.lat = pick(['lat','latitude']); mapper.lon = pick(['lon','lng','long','longitude']);
+    mapper.type = pick(['type','machine','family','purchase']); mapper.city = pick(['city','town']);
+    mapper.state = pick(['state','province','region']); mapper.zip = pick(['zip','postal']);
+  }
+  function showMapper(fields){
+    autoSuggest(fields);
+    const ids=[['mapLat',mapper.lat],['mapLon',mapper.lon],['mapType',mapper.type],['mapCity',mapper.city],['mapState',mapper.state],['mapZip',mapper.zip]];
+    for(const [id,val] of ids){ const sel=byId(id); sel.innerHTML = fields.map(f=>`<option ${f===val?'selected':''}>${f}</option>`).join(''); }
+    byId('mapperCard').style.display='block';
+  }
+  function getMappingFromUI(){
+    mapper.lat=byId('mapLat').value; mapper.lon=byId('mapLon').value; mapper.type=byId('mapType').value;
+    mapper.city=byId('mapCity').value; mapper.state=byId('mapState').value; mapper.zip=byId('mapZip').value;
+  }
+
+  function parseCSVText(text, headersOnly=false){
+    return new Promise(resolve=>{
+      Papa.parse(text, { header:true, dynamicTyping:false, skipEmptyLines:true,
+        complete: (res)=>{
+          const rows=res.data||[]; const fields=(res.meta&&res.meta.fields)? res.meta.fields: [];
+          if(headersOnly) return resolve({fields});
+          const out=[];
+          for(const row of rows){
+            const lat=parseFloat(row[mapper.lat||'']); const lng=parseFloat(row[mapper.lon||'']); if(!isFinite(lat)||!isFinite(lng)) continue;
+            out.push({ lat, lng, type: row[mapper.type||'']||'', city: row[mapper.city||'']||'', state: row[mapper.state||'']||'', zip: String(row[mapper.zip||'']||'').trim() });
+          }
+          resolve({records: out, fields});
+        }
+      });
+    });
+  }
+  function parseGeoJSONText(text){
+    try{
+      const gj=JSON.parse(text); const feats=(gj&&gj.features)? gj.features:[]; const fields=new Set(); const out=[];
+      for(const f of feats){
+        if(!f||!f.geometry||f.geometry.type!=='Point') continue; const [x,y]=f.geometry.coordinates||[]; if(!isFinite(x)||!isFinite(y)) continue;
+        const p=f.properties||{}; Object.keys(p).forEach(k=>fields.add(k));
+        out.push({ lat:y, lng:x, type: p[mapper.type||'Type']||'', city: p[mapper.city||'City']||'', state: p[mapper.state||'State']||'', zip: String(p[mapper.zip||'Zip']||'').trim() });
+      }
+      return {records: out, fields: Array.from(fields)};
+    }catch(e){ console.error(e); return {records: [], fields: []}; }
+  }
+
+  byId('fileInput').addEventListener('change', async (e)=>{
+    const f=e.target.files[0]; if(!f) return; const ext=(f.name.split('.').pop()||'').toLowerCase(); const text=await f.text();
+    if(ext==='csv'||ext==='txt'){ const head=await parseCSVText(text,true); showMapper(head.fields); pending=[text,'csv']; }
+    else if(ext==='json'||ext==='geojson'){ const probe=parseGeoJSONText(text); showMapper(probe.fields.length? probe.fields: ['Type','City','State','Zip']); pending=[text,'geojson']; }
+    else alert('Use CSV or GeoJSON');
+  });
+  byId('applyMap').addEventListener('click', async ()=>{
+    getMappingFromUI(); if(!pending){ alert('No file parsed'); return; }
+    const [text,kind]=pending; let res = (kind==='csv') ? await parseCSVText(text,false) : parseGeoJSONText(text);
+    if(!res.records.length){ alert('No valid rows after mapping. Check columns.'); return; }
+    res.records.forEach(r=> r.type = TYPE_NAME(r.type));
+    ingest(res.records); byId('mapperCard').style.display='none';
+  });
+  byId('loadDemo').addEventListener('click', ()=>{
+    const demo=[
+      {lat:45.5231,lng:-122.6765,type:'VJ4',city:'Portland',state:'Oregon',zip:'97204'},
+      {lat:40.4406,lng:-79.9959,type:'JF3',city:'Pittsburgh',state:'Pennsylvania',zip:'15222'},
+      {lat:39.7392,lng:-104.9903,type:'FD',city:'Denver',state:'Colorado',zip:'80202'},
+      {lat:34.0522,lng:-118.2437,type:'DD',city:'Los Angeles',state:'California',zip:'90012'},
+      {lat:47.6062,lng:-122.3321,type:'DJ',city:'Seattle',state:'Washington',zip:'98104'},
+      {lat:36.1699,lng:-115.1398,type:'SE',city:'Las Vegas',state:'Nevada',zip:'89101'},
+      {lat:33.4484,lng:-112.0740,type:'VJ3',city:'Phoenix',state:'Arizona',zip:'85004'},
+      {lat:41.8781,lng:-87.6298,type:'VJ4',city:'Chicago',state:'Illinois',zip:'60604'}
+    ];
+    ingest(demo.map(r=>({...r, type: TYPE_NAME(r.type)})));
+    byId('mapperCard').style.display='none';
+  });
+  byId('loadPasted').addEventListener('click', async ()=>{
+    const txt=byId('pasteArea').value.trim(); if(!txt){ alert('Paste CSV'); return; }
+    const head=await new Promise(resolve=> Papa.parse(txt,{header:true,preview:1,complete:(res)=>resolve({fields:(res.meta&&res.meta.fields)?res.meta.fields:[]})}));
+    showMapper(head.fields); pending=[txt,'csv'];
+  });
+
+  // Supercluster helpers
+  function toFeatures(records){ return records.map(r=>({type:'Feature', properties:{}, geometry:{type:'Point', coordinates:[r.lng,r.lat]}})); }
+  function buildSCIndex(source){ const recs=source&&source.length? source: ALL; scIndex=new Supercluster({radius:80,maxZoom:16,minPoints:2}).load(toFeatures(recs)); }
+
+  // Distance + nearest‑neighbor ordering
+  function dist2(a,b){
+    const dlat=a[0]-b[0], dlng=(a[1]-b[1])*Math.cos((a[0]+b[0])*Math.PI/360);
+    return dlat*dlat + dlng*dlng;
+  }
+  function nearestOrder(nodes){
+    if(nodes.length<=2) return nodes.slice();
+    let ordered = nodes.slice();
+    let startIdx = 0;
+    if(ordered[0].count===undefined){
+      startIdx = ordered.map((n,i)=>[i,n.center[1]]).sort((a,b)=>a[1]-b[1])[0][0];
+    }
+    const result=[];
+    let cur = ordered.splice(startIdx,1)[0];
+    result.push(cur);
+    while(ordered.length){
+      let best=0, bestd=Infinity;
+      for(let i=0;i<ordered.length;i++){
+        const d = dist2(cur.center, ordered[i].center);
+        if(d<bestd){ bestd=d; best=i; }
+      }
+      cur = ordered.splice(best,1)[0];
+      result.push(cur);
+    }
+    return result;
+  }
+
+  // Spotlight route
+  function buildSpotlightRoute(){
+    const routeZoom = Number(byId('spotRouteZoom').value||5);
+    const limit = Number(byId('spotLimit').value||12);
+    const bbox=[-180,-85,180,85];
+    const nodes = scIndex.getClusters(bbox, routeZoom);
+    let centers = nodes.map(n=>{ const [x,y]=n.geometry.coordinates; const cnt=n.properties.cluster? n.properties.point_count:1; return {center:[y,x], count:cnt}; });
+    centers.sort((a,b)=> b.count-a.count || a.center[1]-b.center[1]);
+    centers = (limit>0) ? centers.slice(0,limit) : centers;
+    centers = nearestOrder(centers);
+    return centers.map(n=>({center:n.center, zoom:Number(byId('spotZoom').value||5)}));
+  }
+
+  // Chaptered route
+  function centroid(list){ const n=list.length; if(!n) return null; let lat=0,lng=0; for(const r of list){ lat+=r.lat; lng+=r.lng; } return [lat/n, lng/n]; }
+  function inBox(r, box){ return r.lat>=box[1] && r.lat<=box[3] && r.lng>=box[0] && r.lng<=box[2]; }
+
+  function buildChapteredRoute(){
+    const overviewZoom = Number(byId('chOverviewZoom').value||4);
+    const regionZoom = Number(byId('chRegionZoom').value||6);
+    const metroZoom = Number(byId('chMetroZoom').value||9);
+    const topMetros = Number(byId('chTopMetros').value||10);
+
+    const west=[-125, 31, -104, 49];
+    const central=[-104, 31, -90, 49];
+    const east=[-90, 31, -66, 49];
+
+    const steps = [];
+    const cAll = centroid(ALL); if(cAll) steps.push({center:cAll, zoom: overviewZoom});
+
+    const regions=[{box:west},{box:central},{box:east}];
+    for(const reg of regions){
+      const recs=ALL.filter(r=> inBox(r, reg.box));
+      const c=centroid(recs); if(c) steps.push({center:c, zoom: regionZoom});
+    }
+
+    // metros
+    const bbox=[-180,-85,180,85];
+    const nodes=scIndex.getClusters(bbox, metroZoom);
+    let centers=nodes.map(n=>{ const [x,y]=n.geometry.coordinates; const cnt=n.properties.cluster? n.properties.point_count:1; return {center:[y,x], count:cnt}; });
+    centers.sort((a,b)=> b.count-a.count || a.center[1]-b.center[1]);
+    centers = centers.slice(0, topMetros);
+    centers = nearestOrder(centers);
+    centers.forEach(n => steps.push({center:n.center, zoom: metroZoom}));
+
+    return steps;
+  }
+
+  function buildRoute(){
+    if(!ALL.length){ alert('Load data first'); return; }
+    buildSCIndex();
+    const mode = byId('tourMode').value;
+    route = (mode==='spotlight') ? buildSpotlightRoute() : buildChapteredRoute();
+    idx = 0; dir = 1;
+  }
+
+  // Playback
+  function start(){
+    clearTimeout(autoResumeTimer);
+    if(!route.length){ buildRoute(); if(!route.length){ alert('No route produced'); return; } }
+    playing=true; step();
+  }
+  function stop(){ playing=false; clearTimeout(timer); map.stop(); document.body.classList.remove('dim'); }
+
+  function pauseWithAutoResume(ms=15000){
+    stop();
+    clearTimeout(autoResumeTimer);
+    autoResumeTimer = setTimeout(()=>{
+      if(!playing && route.length){ playing=true; step(); }
+    }, ms);
+  }
+
+  function step(){
+    if(!playing) return;
+    const mode = byId('tourMode').value;
+    const dim = byId('dimMode').value==='on';
+    document.body.classList.toggle('dim', dim);
+
+    const node = route[idx] || route[0];
+    const moveSec = mode==='spotlight' ? Number(byId('spotMoveSec').value||3) : Number(byId('chMoveSec').value||3);
+    const dwell = mode==='spotlight' ? Number(byId('spotDwell').value||1000) : Number(byId('chDwell').value||900);
+    const ease = Number(byId('spotEase').value||0.25);
+
+    const onMove = () => {
+      map.off('moveend', onMove);
+      timer = setTimeout(()=>{
+        idx += dir;
+        if(byId('loopMode').value==='on'){
+          if(idx>=route.length-1 || idx<=0){ dir *= -1; }
+          step();
+        }else{
+          if(idx>=route.length){ stop(); } else { step(); }
+        }
+      }, dwell);
+    };
+    map.on('moveend', onMove);
+    map.flyTo(node.center, node.zoom, { duration: moveSec, easeLinearity: ease });
+  }
+
+  // Legend overlay
+  function rebuildLegend(){
+    const fams = new Set(ALL.map(r=> TYPE_NAME(r.type)));
+    const order = ['Vape-Jet','Jet-Fueler','Flight-Deck','Dab-Dispenser','Squish-E','Dab-Jet'];
+    const list = order.filter(f=> fams.has(f));
+    const box = byId('legendRows');
+    box.innerHTML = '';
+    for(const fam of list){
+      const row = document.createElement('div'); row.className='row';
+      const sw = document.createElement('span'); sw.className='sw'; sw.style.color = TYPE_COL[fam] || '#60a5fa';
+      const label = document.createElement('span'); label.textContent = fam;
+      row.appendChild(sw); row.appendChild(label); box.appendChild(row);
+    }
+  }
+
+  // Refresh styles from controls
+  function refreshStyles(){
+    setCss('--cluster-count-color', byId('pieCountText').value);
+    markers.forEach(m => m.setIcon(pointIcon(m.record.type)));
+    clusters.refreshClusters && clusters.refreshClusters();
+    rebuildLegend();
+    applyToolbarDotStyle();
+  }
+
+  // Branding wires
+  byId('ctlTitleText').addEventListener('input', (e)=>{ byId('titleText').textContent = e.target.value || ' '; });
+  byId('ctlTitleSize').addEventListener('change', (e)=> setCss('--title-size', e.target.value+'px'));
+  byId('ctlTitleAlign').addEventListener('change', (e)=> setCss('--title-align', e.target.value));
+  function applyHeaderGradient(){ const a=byId('gradA').value, b=byId('gradB').value; byId('headerBar').style.background = `linear-gradient(90deg, ${a}, ${b})`; }
+  byId('gradA').addEventListener('input', applyHeaderGradient);
+  byId('gradB').addEventListener('input', applyHeaderGradient);
+
+  // Legend toggle and position
+  function applyLegendToggle(){ const on = byId('ctlLegend').value==='on'; byId('legend').classList.toggle('hidden', !on); }
+  byId('ctlLegend').addEventListener('change', applyLegendToggle);
+  function applyLegendPos(){
+    const pos = byId('legendPos').value;
+    const el = byId('legend');
+    el.style.top=''; el.style.right=''; el.style.bottom=''; el.style.left='';
+    if(pos==='br'){ el.style.right='10px'; el.style.bottom='10px'; }
+    if(pos==='bl'){ el.style.left='10px'; el.style.bottom='10px'; }
+    if(pos==='tr'){ el.style.right='10px'; el.style.top='10px'; }
+    if(pos==='tl'){ el.style.left='10px'; el.style.top='10px'; }
+  }
+  byId('legendPos').addEventListener('change', applyLegendPos);
+
+  // Type color pickers
+  function bindTypeColor(id, fam, cssVar){
+    byId(id).addEventListener('input', (e)=>{ TYPE_COL[fam] = e.target.value; setCss(cssVar, e.target.value); refreshStyles(); });
+  }
+  bindTypeColor('colVJ','Vape-Jet','--col-vj');
+  bindTypeColor('colJF','Jet-Fueler','--col-jf');
+  bindTypeColor('colFD','Flight-Deck','--col-fd');
+  bindTypeColor('colDD','Dab-Dispenser','--col-dd');
+  bindTypeColor('colSE','Squish-E','--col-se');
+  bindTypeColor('colDJ','Dab-Jet','--col-dj');
+
+  // Dot fill controls
+  function applyDotFillFromInputs(){
+    const clear = byId('dotClear').value==='on';
+    if(clear){
+      setCss('--dot-fill','transparent');
+      byId('dotFillHex').value = 'transparent';
+    }else{
+      const color = byId('dotFillHex').value || byId('dotFill').value;
+      setCss('--dot-fill', color);
+    }
+    refreshStyles();
+  }
+  byId('dotFill').addEventListener('input', (e)=>{ byId('dotFillHex').value = e.target.value; byId('dotClear').value='off'; applyDotFillFromInputs(); });
+  byId('dotFillHex').addEventListener('input', ()=>{ byId('dotClear').value='off'; applyDotFillFromInputs(); });
+  byId('dotClear').addEventListener('change', applyDotFillFromInputs);
+
+  // Pie outline and glow
+  function applyPieStyle(){
+    setCss('--cluster-outline-color', byId('pieOutline').value);
+    setCss('--cluster-outline-width', byId('pieOutlineW').value + 'px');
+    setCss('--cluster-glow-color', byId('pieGlow').value);
+    setCss('--cluster-glow-width', byId('pieGlowW').value + 'px');
+    refreshStyles();
+  }
+  ['pieOutline','pieOutlineW','pieGlow','pieGlowW','pieCountText'].forEach(id=> byId(id).addEventListener('input', applyPieStyle));
+
+  // Buttons + Toolbar styling
+  function applyButtonStyles(){
+    setCss('--btn-bg', byId('btnBg').value);
+    setCss('--btn-border', byId('btnBd').value);
+    setCss('--btn-text', byId('btnText').value);
+    setCss('--btn-primary', byId('btnPrimary').value);
+    applyToolbarDotStyle();
+  }
+  ['btnBg','btnBd','btnText','btnPrimary'].forEach(id=> byId(id).addEventListener('input', applyButtonStyles));
+
+  // Toolbar mode + dot
+  function applyToolbarMode(){
+    const mode = byId('toolbarMode').value;
+    const tb = byId('toolbar'); const dot = byId('toolbarDot');
+    if(mode==='dot'){ tb.classList.add('hidden'); dot.style.display='block'; }
+    else{ tb.classList.remove('hidden'); dot.style.display='none'; }
+    applyToolbarDotStyle();
+  }
+  byId('toolbarMode').addEventListener('change', applyToolbarMode);
+
+  function applyToolbarDotStyle(){
+    const dot = byId('toolbarDot');
+    const base = parseFloat(getCss('--dot-size','46px')) || 46;
+    const size = (byId('toolbarMode').value==='dot') ? Math.round(base*0.5) : base; // 50% smaller when collapsed
+    dot.style.background = getCss('--btn-primary','#6E2BF2');
+    dot.style.width = size + 'px';
+    dot.style.height = size + 'px';
+    applyToolbarDotPosition();
+  }
+  function applyToolbarDotPosition(){
+    const dot = byId('toolbarDot'); const side = byId('dotPos').value;
+    dot.style.left=''; dot.style.right='';
+    if(side==='right'){ dot.style.right='10px'; }
+    else { dot.style.left='10px'; }
+    // vertical positioning locked to header center via CSS (top:50% with translateY)
+  }
+  byId('dotPos').addEventListener('change', applyToolbarDotPosition);
+  byId('dotSize').addEventListener('change', (e)=>{ setCss('--dot-size', e.target.value+'px'); applyToolbarDotStyle(); });
+
+  // Dock/show handlers
+  byId('dockBtn').addEventListener('click', ()=>{ byId('toolbarMode').value='dot'; applyToolbarMode(); });
+  byId('toolbarDot').addEventListener('click', ()=>{ byId('toolbarMode').value='full'; applyToolbarMode(); });
+
+  // Basemap UI
+  byId('basemapSelect').addEventListener('change', (e)=> setBaseMap(e.target.value));
+
+  // Panel collapse
+  byId('togglePanel').addEventListener('click', ()=>{
+    const wrap=$('.wrap'); const collapsed=wrap.classList.toggle('collapsed'); byId('togglePanel').textContent=collapsed?'Show panel':'Hide panel'; setTimeout(()=> map.invalidateSize(), 180);
+  });
+
+  // Mode vis
+  byId('tourMode').addEventListener('change', (e)=>{
+    const mode=e.target.value;
+    byId('spotlightCard').style.display = mode==='spotlight' ? 'block' : 'none';
+    byId('chapterCard').style.display = mode==='chaptered' ? 'block' : 'none';
+  });
+
+  // Build route, start, stop
+  byId('buildRoute').addEventListener('click', buildRoute);
+  byId('startFly').addEventListener('click', start);
+  byId('stopFly').addEventListener('click', ()=>{ clearTimeout(autoResumeTimer); stop(); });
+
+  // ---------- Settings Export / Import ----------
+  const SETTINGS_KEYS = [
+    'ctlTitleText','ctlTitleSize','ctlTitleAlign','ctlLegend','gradA','gradB','legendPos',
+    'btnBg','btnBd','btnText','btnPrimary','toolbarMode','dotSize','dotPos',
+    'basemapSelect',
+    'colVJ','colJF','colFD','colDD','colSE','colDJ',
+    'dotFillHex','dotClear',
+    'pieOutline','pieOutlineW','pieGlow','pieGlowW','legendBg','legendBd','pieCountText',
+    'tourMode','dimMode','loopMode',
+    'spotZoom','spotRouteZoom','spotLimit','spotMoveSec','spotDwell','spotEase',
+    'chOverviewZoom','chRegionZoom','chMetroZoom','chTopMetros','chMoveSec','chDwell'
+  ];
+
+  function getSettingsObj(){
+    const obj={};
+    for(const k of SETTINGS_KEYS){
+      const el = byId(k);
+      if(!el) continue;
+      obj[k] = (el.type==='color'||el.type==='text'||el.type==='number') ? el.value :
+               (el.tagName==='SELECT' ? el.value : el.value);
+    }
+    return obj;
+  }
+
+  function applySettingsObj(obj){
+    let needsBase=false;
+    for(const [k,v] of Object.entries(obj)){
+      const el = byId(k); if(!el) continue;
+      el.value = v;
+      if(k==='basemapSelect') needsBase=true;
+    }
+    // Re-apply derived CSS and state
+    applyHeaderGradient();
+    applyLegendToggle();
+    applyLegendPos();
+    applyButtonStyles();
+    applyToolbarMode();
+    applyToolbarDotStyle();
+    applyPieStyle();
+    applyDotFillFromInputs();
+    refreshStyles();
+    if(needsBase) setBaseMap(byId('basemapSelect').value);
+  }
+
+  function toCSV(obj){
+    const rows = [['key','value']].concat(Object.entries(obj));
+    return rows.map(r=> r.map(x=> String(x).includes(',') ? `"${String(x).replace(/"/g,'""')}"` : String(x)).join(',')).join('\n');
+  }
+
+  byId('exportSettings').addEventListener('click', ()=>{
+    const csv = toCSV(getSettingsObj());
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'vj_map_settings.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 500);
+  });
+
+  byId('importSettingsBtn').addEventListener('click', ()=> byId('importSettings').click());
+  byId('importSettings').addEventListener('change', async (e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    const text=await f.text();
+    Papa.parse(text, { header:true, skipEmptyLines:true, complete: (res)=>{
+      const rows = res.data || [];
+      const obj={};
+      for(const r of rows){
+        const k = r.key || r.id || r.ID || r.Key;
+        const v = r.value || r.Value;
+        if(k!=null) obj[k]=v;
+      }
+      applySettingsObj(obj);
+    }});
+  });
+
+  // ---------- Cluster glitch fixes + click-to-pause ----------
+  function hideClusterIcon(layer){
+    try{
+      if(layer && layer._icon){ layer._icon.style.visibility='hidden'; }
+    }catch(e){}
+  }
+  function showClusterIcon(layer){
+    try{
+      if(layer && layer._icon){ layer._icon.style.visibility=''; }
+    }catch(e){}
+  }
+
+  clusters.on('clusterclick', (e)=>{
+    // Hide the big pie immediately and pause animation with auto-resume
+    hideClusterIcon(e.layer);
+    pauseWithAutoResume(15000);
+    // default action (zoom or spiderfy) continues
+  });
+
+  clusters.on('spiderfied', (e)=>{
+    // When exploded into children, keep the parent pie hidden
+    if(e && e.cluster){ hideClusterIcon(e.cluster); }
+  });
+  clusters.on('unspiderfied', (e)=>{
+    // Restore visibility when unspiderfied and not at high zoom
+    if(e && e.cluster){
+      if(map.getZoom() < explodeAt){ showClusterIcon(e.cluster); }
+    }
+  });
+
+  // Ensure pies are hidden at and beyond explodeAt zoom (safety net during animations)
+  map.on('zoomend', ()=>{
+    const z = map.getZoom();
+    const pies = document.querySelectorAll('.vj-cluster');
+    pies.forEach(el=>{
+      if(z >= explodeAt){ el.style.display='none'; }
+      else { el.style.display=''; }
+    });
+  });
+
+  // Any user map click pauses the tour with auto-resume (keeps booth experience responsive)
+  map.on('click', ()=> pauseWithAutoResume(15000));
+
+  // Defaults
+  (function init(){
+    setBaseMap('osm');
+    applyLegendToggle();
+    applyLegendPos();
+    applyHeaderGradient();
+    applyPieStyle();
+    applyDotFillFromInputs();
+    applyButtonStyles();
+    applyToolbarMode();
+    applyToolbarDotStyle();
+  })();
+</script>
+</body>
+</html>
