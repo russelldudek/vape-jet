@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Vape-Jet | Software FI Flow</title>
+  <style>
+    :root {
+      --bg: #050607;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.085);
+      --stroke: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.62);
+      --green: #00ff6a;
+      --green2: #00c853;
+      --yellow: #ffd400;
+      --orange: #ff8a00;
+      --red: #ff3b30;
+      --cyan: #33d6ff;
+      --purple: #b56dff;
+      --shadow: 0 18px 50px rgba(0,0,0,0.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,0.45);
+      --radius: 18px;
+      --radius2: 24px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1100px 700px at 18% 5%, rgba(0,255,106,0.10), transparent 60%),
+        radial-gradient(900px 600px at 85% 15%, rgba(51,214,255,0.09), transparent 55%),
+        radial-gradient(900px 650px at 70% 92%, rgba(181,109,255,0.08), transparent 60%),
+        linear-gradient(180deg, #020304, var(--bg));
+      overflow-x: hidden;
+    }
+
+    /* Subtle grid */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: 0.08;
+      mask-image: radial-gradient(900px 600px at 25% 10%, black 30%, transparent 70%);
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 26px 20px 40px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 240px;
+    }
+
+    .logo {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow2);
+    }
+    .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .titleblock h1 {
+      margin: 0;
+      font-size: clamp(20px, 3.2vw, 32px);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .titleblock p {
+      margin: 6px 0 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .pillbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      user-select: none;
+    }
+    .pill .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 3px rgba(0,255,106,0.16), 0 0 18px rgba(0,255,106,0.35);
+    }
+    .pill small { color: var(--muted); font-size: 12px; }
+    .pill strong { font-size: 13px; letter-spacing: 0.01em; }
+
+    .btn {
+      border: 1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(0,255,106,0.45);
+      background: linear-gradient(180deg, rgba(0,255,106,0.14), rgba(255,255,255,0.04));
+    }
+    .btn:active { transform: translateY(0px); }
+    .btn .spark {
+      width: 10px; height: 10px; border-radius: 2px;
+      background: var(--yellow);
+      box-shadow: 0 0 0 3px rgba(255,212,0,0.15), 0 0 16px rgba(255,212,0,0.25);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      header {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+      .pillbar { justify-content: flex-start; }
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .cardhd {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .cardhd h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.78);
+    }
+
+    .progress {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      text-align: right;
+    }
+    .progress small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .bar {
+      width: 210px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      overflow: hidden;
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+      box-shadow: 0 0 18px rgba(0,255,106,0.3);
+      transition: width 240ms ease;
+    }
+
+    .flow {
+      position: relative;
+      padding: 14px 14px 16px;
+    }
+
+    /* Jet line */
+    .flow::before {
+      content: "";
+      position: absolute;
+      left: 34px;
+      top: 22px;
+      bottom: 22px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(0,255,106,0.55), rgba(51,214,255,0.35), rgba(181,109,255,0.25));
+      opacity: 0.65;
+      filter: drop-shadow(0 0 10px rgba(0,255,106,0.35));
+    }
+
+    .step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 12px;
+      padding: 12px 12px 12px 6px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+      outline: none;
+    }
+    .step:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.10);
+      transform: translateY(-1px);
+    }
+    .step:focus-visible {
+      border-color: rgba(0,255,106,0.55);
+      box-shadow: 0 0 0 4px rgba(0,255,106,0.12);
+    }
+    .step + .step { margin-top: 10px; }
+
+    .node {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 12px 26px rgba(0,0,0,0.45);
+      position: relative;
+      margin-left: 10px;
+    }
+
+    .node::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 64px;
+      height: 64px;
+      transform: translate(-50%, -50%);
+      border-radius: 18px;
+      background: radial-gradient(circle at 30% 30%, rgba(0,255,106,0.25), transparent 55%);
+      opacity: 0.0;
+      transition: opacity 180ms ease;
+    }
+
+    .step.active .node::before { opacity: 1; }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.05);
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      width: fit-content;
+    }
+    .badge i {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(0,255,106,0.35);
+      display: inline-block;
+    }
+
+    .step h3 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .step p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .typeTag {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.75);
+    }
+
+    .typeTag.action { border-color: rgba(0,255,106,0.28); color: rgba(0,255,106,0.95); }
+    .typeTag.decision { border-color: rgba(255,212,0,0.28); color: rgba(255,212,0,0.95); }
+    .typeTag.system { border-color: rgba(51,214,255,0.28); color: rgba(51,214,255,0.98); }
+    .typeTag.loop { border-color: rgba(181,109,255,0.28); color: rgba(181,109,255,0.98); }
+    .typeTag.close { border-color: rgba(255,138,0,0.28); color: rgba(255,138,0,0.98); }
+
+    .step.active {
+      background: linear-gradient(180deg, rgba(0,255,106,0.10), rgba(255,255,255,0.05));
+      border-color: rgba(0,255,106,0.28);
+    }
+
+    /* Decision diamond icon */
+    .diamond {
+      width: 16px; height: 16px;
+      transform: rotate(45deg);
+      border-radius: 3px;
+      background: rgba(255,212,0,0.95);
+      box-shadow: 0 0 0 3px rgba(255,212,0,0.14), 0 0 18px rgba(255,212,0,0.25);
+    }
+
+    /* Action icon */
+    .bolt {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+      background: rgba(0,255,106,0.95);
+      box-shadow: 0 0 0 3px rgba(0,255,106,0.14), 0 0 18px rgba(0,255,106,0.22);
+      clip-path: polygon(40% 0%, 65% 0%, 52% 38%, 74% 38%, 33% 100%, 46% 60%, 24% 60%);
+    }
+
+    /* System icon */
+    .gear {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: rgba(51,214,255,0.95);
+      box-shadow: 0 0 0 3px rgba(51,214,255,0.14), 0 0 18px rgba(51,214,255,0.22);
+    }
+
+    .detail { padding: 16px; }
+
+    .detail h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .detail p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .kpis {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 980px) { .kpis { grid-template-columns: 1fr; } }
+
+    .kpi {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .kpi small {
+      display: block;
+      color: rgba(255,255,255,0.70);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .kpi strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+    .kpi .tagline {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: rgba(255,255,255,0.86);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    li { margin: 6px 0; color: rgba(255,255,255,0.84); }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .chip {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.82);
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chip .mini {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(0,255,106,0.28);
+    }
+
+    .callout {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,255,106,0.24);
+      background: linear-gradient(180deg, rgba(0,255,106,0.10), rgba(255,255,255,0.04));
+    }
+    .callout strong { display: block; font-size: 13px; }
+    .callout span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .footer {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,0.58);
+      backdrop-filter: blur(10px);
+      z-index: 50;
+      padding: 18px;
+    }
+    .modal.open { display: grid; }
+    .modalbox {
+      width: min(860px, 100%);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(10,12,13,0.9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .modalhd {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+    }
+    .modalhd h3 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.78);
+    }
+    .modalbd { padding: 16px; }
+
+    pre {
+      margin: 0;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.35);
+      color: rgba(255,255,255,0.86);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.45;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .xbtn {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.88);
+      border-radius: 12px;
+      padding: 9px 10px;
+      cursor: pointer;
+      transition: border-color 140ms ease, transform 140ms ease;
+    }
+    .xbtn:hover {
+      border-color: rgba(0,255,106,0.45);
+      transform: translateY(-1px);
+    }
+    .xbtn:active { transform: translateY(0px); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(10,12,13,0.92);
+      border: 1px solid rgba(0,255,106,0.28);
+      padding: 10px 12px;
+      border-radius: 14px;
+      box-shadow: var(--shadow2);
+      display: none;
+      gap: 10px;
+      align-items: center;
+      z-index: 60;
+      color: rgba(255,255,255,0.9);
+      font-size: 13px;
+    }
+    .toast.show { display: inline-flex; }
+    .toast .tDot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 16px rgba(0,255,106,0.35);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand" aria-label="Vape-Jet header">
+        <div class="logo" aria-hidden="true">
+          <img alt='Vape-Jet logo' src='https://vape-jet.com/wp-content/uploads/2020/03/19_Ryan_VJ_Logo_Social_01-scaled.jpg' />
+        </div>
+        <div class="titleblock">
+          <h1>Software Field Intelligence Flow</h1>
+          <p>One VJSD ticket, one validated FI Form, faster fixes, fewer follow-up pings.</p>
+        </div>
+      </div>
+
+      <div class="pillbar">
+        <div class="pill" title="The 3 coordinates that make logs findable">
+          <span class="dot" aria-hidden="true"></span>
+          <div>
+            <strong>Coordinates</strong><br/>
+            <small>S/N + timestamp + version</small>
+          </div>
+        </div>
+        <button class="btn" id="openChecklist" type="button" aria-haspopup="dialog">
+          <span class="spark" aria-hidden="true"></span>
+          FI checklist
+        </button>
+        <button class="btn" id="copyTalkTrack" type="button" title="Copies a 60-second meetup talk track">
+          <span class="spark" aria-hidden="true"></span>
+          Copy talk track
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="card" aria-label="Flow chart">
+        <div class="cardhd">
+          <h2>Flow</h2>
+          <div class="progress" aria-label="Progress">
+            <small><span id="progressLabel">Step 1</span> of <span id="totalSteps">8</span></small>
+            <div class="bar" aria-hidden="true"><i id="progressBar"></i></div>
+          </div>
+        </div>
+        <div class="flow" id="flow"></div>
+      </section>
+
+      <aside class="card" aria-label="Details panel">
+        <div class="cardhd">
+          <h2>Details</h2>
+          <div class="badge" title="This panel updates based on the selected step">
+            <i aria-hidden="true"></i>
+            <span id="detailType">ACTION</span>
+          </div>
+        </div>
+        <div class="detail">
+          <h2 id="detailTitle">Select a step</h2>
+          <p id="detailSummary">Tap a step on the left to see what matters and what artifacts make it fast to diagnose.</p>
+
+          <div class="kpis" id="kpis" aria-label="Quick wins">
+            <div class="kpi">
+              <small>QOL win</small>
+              <strong id="qol1">Less back-and-forth</strong>
+              <div class="tagline" id="qol1d">Validated FI means fewer “can you grab…” follow-ups.</div>
+            </div>
+            <div class="kpi">
+              <small>QOL win</small>
+              <strong id="qol2">Faster triage</strong>
+              <div class="tagline" id="qol2d">Software can pull logs with coordinates, not guesswork.</div>
+            </div>
+          </div>
+
+          <div class="chips" id="chips" aria-label="Tags"></div>
+
+          <div class="callout" id="callout">
+            <strong>Default rule</strong>
+            <span>Support captures data and artifacts. Support does not troubleshoot root cause.</span>
+          </div>
+
+          <div class="footer">
+            <span id="footerHint">Tip: Use ↑ and ↓ to move through steps.</span>
+            <span>VJSD → VJN linkage keeps customer context intact.</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modalbox">
+      <div class="modalhd">
+        <h3 id="modalTitle">FI Checklist</h3>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn" id="copyChecklist" type="button">
+            <span class="spark" aria-hidden="true"></span>
+            Copy
+          </button>
+          <button class="xbtn" id="closeModal" type="button" aria-label="Close">Close</button>
+        </div>
+      </div>
+      <div class="modalbd">
+        <pre id="checklistText"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="tDot" aria-hidden="true"></span>
+    <span id="toastText">Copied</span>
+  </div>
+
+  <script>
+    const steps = [
+      {
+        id: "start",
+        type: "action",
+        title: "Start: VJSD ticket exists",
+        summary: "Customer issue lands in VJSD (portal, call, email). This is the source record for context and comms.",
+        chips: ["VJSD", "Customer context", "Timeline"],
+        qol: [
+          ["One home for the truth", "No split-brain between Slack, docs, and tickets."],
+          ["Fewer status pings", "Everyone can see the same record and artifacts."]
+        ],
+        icon: "bolt"
+      },
+      {
+        id: "sort",
+        type: "decision",
+        title: "Decision: Is it software-related?",
+        summary: "Quick sort. If it is not software, stay in normal VJSD flow. If it is software or maybe software, keep going.",
+        chips: ["Decision point", "Fast sort"],
+        qol: [
+          ["Less debate", "Decide fast, document once."],
+          ["No rework", "Routing early avoids re-copying context later."]
+        ],
+        icon: "diamond"
+      },
+      {
+        id: "switch",
+        type: "action",
+        title: "Flip the routing switch in VJSD",
+        summary: "Set Component/Sub-System = Software, set Severity. This triggers the FI workflow.",
+        chips: ["Component: Software", "Severity"],
+        qol: [
+          ["Faster visibility", "Software sees it in the triage queue quickly."],
+          ["Clear priority", "Severity sets expectations and urgency."]
+        ],
+        icon: "bolt"
+      },
+      {
+        id: "form",
+        type: "action",
+        title: "Fill the validated FI Form in VJSD",
+        summary: "Use the embedded FI Form so fields are consistent and parseable. Coordinates beat vibes.",
+        chips: ["Validated fields", "Parseable data", "Coordinates"],
+        qol: [
+          ["No missing basics", "Required fields prevent incomplete handoffs."],
+          ["Easy parsing", "Software can filter and report without reading long threads."]
+        ],
+        icon: "bolt"
+      },
+      {
+        id: "artifacts",
+        type: "action",
+        title: "Attach required artifacts",
+        summary: "Evidence plus Zoom recording link (when Zoom happened). This reduces repeat calls and guesswork.",
+        chips: ["Evidence", "Zoom recording", "Debug bundle"],
+        qol: [
+          ["Less back-and-forth", "Artifacts answer questions before they get asked."],
+          ["Faster root cause", "Software can see exact state and operator narration."]
+        ],
+        icon: "bolt"
+      },
+      {
+        id: "route",
+        type: "system",
+        title: "System routes to Software triage",
+        summary: "Automation labels, assigns, and notifies. If P0, it escalates.",
+        chips: ["Automation", "FI-SW", "Triage queue"],
+        qol: [
+          ["No manual chasing", "The ticket routes itself once fields are set."],
+          ["Clear ownership", "Triage queue prevents orphan tickets."]
+        ],
+        icon: "gear"
+      },
+      {
+        id: "triage",
+        type: "decision",
+        title: "Decision: Does it need engineering work?",
+        summary: "Software triages directly from VJSD artifacts. If work is needed, create VJN and link back.",
+        chips: ["Triage outcome", "VJN linkage"],
+        qol: [
+          ["No duplicated notes", "VJSD holds evidence, VJN holds execution."],
+          ["Traceability", "Support can track fix status via the linked VJN."]
+        ],
+        icon: "diamond"
+      },
+      {
+        id: "loopclose",
+        type: "loop",
+        title: "Loop and close",
+        summary: "If it happens again, add an Occurrence entry. When fixed, close the loop in VJSD with release info.",
+        chips: ["Occurrence entries", "Release notes", "Customer confirmation"],
+        qol: [
+          ["Trend visibility", "Occurrences show frequency without new tickets."],
+          ["Clean closure", "Support has everything needed to communicate confidence."]
+        ],
+        icon: "bolt"
+      }
+    ];
+
+    const typeLabel = (t) => String(t || "action").toUpperCase();
+    const typeTagClass = (t) => String(t || "action");
+
+    const icons = {
+      bolt: () => '<span class="bolt" aria-hidden="true"></span>',
+      diamond: () => '<span class="diamond" aria-hidden="true"></span>',
+      gear: () => '<span class="gear" aria-hidden="true"></span>'
+    };
+
+    const flowEl = document.getElementById("flow");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailSummary = document.getElementById("detailSummary");
+    const detailType = document.getElementById("detailType");
+    const chipsEl = document.getElementById("chips");
+    const qol1 = document.getElementById("qol1");
+    const qol2 = document.getElementById("qol2");
+    const qol1d = document.getElementById("qol1d");
+    const qol2d = document.getElementById("qol2d");
+    const progressLabel = document.getElementById("progressLabel");
+    const totalStepsEl = document.getElementById("totalSteps");
+    const progressBar = document.getElementById("progressBar");
+
+    totalStepsEl.textContent = String(steps.length);
+
+    function renderFlow() {
+      flowEl.innerHTML = "";
+      steps.forEach((s, idx) => {
+        const step = document.createElement("div");
+        step.className = "step";
+        step.tabIndex = 0;
+        step.dataset.index = String(idx);
+        step.setAttribute("role", "button");
+        step.setAttribute("aria-label", `Step ${idx + 1}: ${s.title}`);
+
+        const node = document.createElement("div");
+        node.className = "node";
+        node.innerHTML = (icons[s.icon] ? icons[s.icon]() : icons.bolt());
+
+        const body = document.createElement("div");
+        body.innerHTML = `
+          <h3>
+            <span class="typeTag ${typeTagClass(s.type)}">${typeLabel(s.type)}</span>
+            ${s.title}
+          </h3>
+          <p>${s.summary}</p>
+        `;
+
+        step.appendChild(node);
+        step.appendChild(body);
+        step.addEventListener("click", () => selectStep(idx));
+        step.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectStep(idx);
+          }
+        });
+
+        flowEl.appendChild(step);
+      });
+    }
+
+    function setProgress(idx) {
+      progressLabel.textContent = `Step ${idx + 1}`;
+      const pct = Math.round(((idx + 1) / steps.length) * 100);
+      progressBar.style.width = pct + "%";
+    }
+
+    function selectStep(idx) {
+      const all = Array.from(flowEl.querySelectorAll(".step"));
+      all.forEach(el => el.classList.remove("active"));
+      const active = all[idx];
+      if (active) active.classList.add("active");
+
+      const s = steps[idx];
+      detailTitle.textContent = `Step ${idx + 1}: ${s.title}`;
+      detailSummary.textContent = s.summary;
+      detailType.textContent = typeLabel(s.type);
+
+      chipsEl.innerHTML = "";
+      (s.chips || []).forEach((c) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.innerHTML = `<span class="mini" aria-hidden="true"></span><span>${c}</span>`;
+        chipsEl.appendChild(chip);
+      });
+
+      const q1 = (s.qol && s.qol[0]) ? s.qol[0] : ["QOL win", ""];
+      const q2 = (s.qol && s.qol[1]) ? s.qol[1] : ["QOL win", ""];
+      qol1.textContent = q1[0]; qol1d.textContent = q1[1];
+      qol2.textContent = q2[0]; qol2d.textContent = q2[1];
+
+      setProgress(idx);
+    }
+
+    renderFlow();
+    selectStep(0);
+
+    document.addEventListener("keydown", (e) => {
+      if (document.getElementById("modal").classList.contains("open")) return;
+
+      const active = flowEl.querySelector(".step.active");
+      const idx = active ? Number(active.dataset.index) : 0;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = Math.min(steps.length - 1, idx + 1);
+        selectStep(next);
+        flowEl.querySelector(`.step[data-index="${next}"]`)?.focus();
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = Math.max(0, idx - 1);
+        selectStep(prev);
+        flowEl.querySelector(`.step[data-index="${prev}"]`)?.focus();
+      }
+    });
+
+    const modal = document.getElementById("modal");
+    const checklistText = document.getElementById("checklistText");
+    const openChecklist = document.getElementById("openChecklist");
+    const closeModal = document.getElementById("closeModal");
+    const copyChecklist = document.getElementById("copyChecklist");
+    const toast = document.getElementById("toast");
+    const toastText = document.getElementById("toastText");
+
+    const checklist = `SOFTWARE FI CHECKLIST (VJSD)
+
+Trigger routing
+- Component/Sub-System: Software
+- Severity: P0 / P1 / P2
+- Complete FI Form (validated)
+
+Coordinates (required)
+- Machine S/N
+- Event timestamp + timezone
+- Software version
+
+What happened
+- Observed (verbatim)
+- Expected
+- Preceding context (what happened right before)
+- Recovery method (none / cleared / restart services / power cycle)
+- Operator impact (1 to 2 lines)
+
+Artifacts (required)
+- Evidence: screenshot OR short video OR log excerpt OR debug bundle
+- Zoom recording link if Zoom occurred
+  If unavailable: N/A / declined / failed / restricted / policy
+
+Repeat events
+- Add an Occurrence entry with new timestamp, version, recovery, and evidence
+
+Linkage
+- If VJN is created, link VJN ↔ VJSD (VJSD remains the evidence source)`;
+
+    checklistText.textContent = checklist;
+
+    function showToast(msg) {
+      toastText.textContent = msg;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove("show"), 1400);
+    }
+
+    function copyToClipboard(text, msg = "Copied to clipboard") {
+      navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showToast(msg);
+      });
+    }
+
+    openChecklist.addEventListener("click", () => {
+      modal.classList.add("open");
+      closeModal.focus();
+    });
+    closeModal.addEventListener("click", () => modal.classList.remove("open"));
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.remove("open");
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.classList.contains("open")) {
+        modal.classList.remove("open");
+      }
+    });
+    copyChecklist.addEventListener("click", () => copyToClipboard(checklist, "Checklist copied"));
+
+    const talkTrack = `Talk track (60 seconds)
+
+Team, we are rolling out a QOL upgrade for software issues.
+
+If a VJSD ticket smells like software, set Component/Sub-System to Software and set Severity.
+That pops the validated FI Form right inside the ticket.
+
+The goal is simple: coordinates and artifacts.
+Coordinates are S/N, timestamp with timezone, and version.
+Artifacts are at least one piece of evidence plus the Zoom recording link when Zoom happened.
+
+This is not troubleshooting. This is clean capture.
+Clean capture means fewer follow-up pings, faster log pulls, and faster fixes.
+
+Once the form is complete, automation routes it to Software triage.
+If it needs engineering, a VJN gets created and linked back to VJSD, so you can track it and update the customer.
+
+Net: less chasing, more fixing.`;
+
+    document.getElementById("copyTalkTrack").addEventListener("click", () => copyToClipboard(talkTrack, "Talk track copied"));
+  </script>
+</body>
+</html>
